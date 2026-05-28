@@ -27,6 +27,11 @@ class EnviroNode(Node):
         try:
             msg = CoralEnviroMsg()
             msg.air_quality.pm2_5_standard = self._get_pm2_5_std()
+            msg.air_quality.pm2_5_atmosphere = self._get_pm2_5_atmosphere()
+            msg.ambient_light.illuminance = float(self.enviro.ambient_light)
+            msg.humidity.relative_humidity = float(self.enviro.humidity)
+            msg.air_pressure.fluid_pressure = float(self.enviro.pressure)
+            msg.temperature.temperature = float(self.enviro.temperature)
             self._sensor_pub.publish(msg)
             self.get_logger().info('Publishing PM2.5: %.2f ug/m3' % self._none_to_nan(msg.air_quality.pm2_5_standard))
         except Exception as e:
@@ -35,6 +40,10 @@ class EnviroNode(Node):
 
     def _get_pm2_5_std(self):
         concentration = self.airqualitysensor.gain_particle_concentration_ugm3(self.airqualitysensor.PARTICLE_PM2_5_STANDARD)
+        return float(concentration)
+    
+    def _get_pm2_5_atmosphere(self):
+        concentration = self.airqualitysensor.gain_particle_concentration_ugm3(self.airqualitysensor.PARTICLE_PM2_5_ATMOSPHERE)
         return float(concentration)
 
     def _none_to_nan(self, val):
