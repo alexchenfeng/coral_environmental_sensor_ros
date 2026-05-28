@@ -30,7 +30,7 @@ class EnviroNode(Node):
 
     def _get_pm2_5_std(self):
         concentration = self.airqualitysensor.gain_particle_concentration_ugm3(self.airqualitysensor.PARTICLE_PM2_5_STANDARD)
-        return concentration
+        return float(concentration)
 
     def _none_to_nan(self, val):
         return float('nan') if val is None else val
