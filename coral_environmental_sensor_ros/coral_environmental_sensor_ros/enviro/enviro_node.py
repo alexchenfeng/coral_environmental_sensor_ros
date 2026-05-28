@@ -25,17 +25,29 @@ class EnviroNode(Node):
 
     def timer_callback(self):
         try:
+            time_stamp_msg = self.get_clock().now().to_msg()
             msg = CoralEnviroMsg()
+            
+            msg.air_quality.header.stamp = time_stamp_msg
             msg.air_quality.pm2_5_standard = self._get_pm2_5_std()
             msg.air_quality.pm2_5_atmosphere = self._get_pm2_5_atmosphere()
             msg.air_quality.pm1_0_standard = self._get_pm1_0_std()
             msg.air_quality.pm1_0_atmosphere = self._get_pm1_0_atmosphere()
             msg.air_quality.pm10_standard = self._get_pm10_0_std()
             msg.air_quality.pm10_atmosphere = self._get_pm10_0_atmosphere()
+
+            msg.ambient_light.header.stamp = time_stamp_msg
             msg.ambient_light.illuminance = float(self.enviro.ambient_light)
+
+            msg.humidity.header.stamp = time_stamp_msg
             msg.humidity.relative_humidity = float(self.enviro.humidity)
+
+            msg.air_pressure.header.stamp = time_stamp_msg
             msg.air_pressure.fluid_pressure = float(self.enviro.pressure)
+
+            msg.temperature.header.stamp = time_stamp_msg
             msg.temperature.temperature = float(self.enviro.temperature)
+
             self._sensor_pub.publish(msg)
             self.get_logger().info('Publishing PM2.5: %.2f ug/m3' % self._none_to_nan(msg.air_quality.pm2_5_standard))
         except Exception as e:
