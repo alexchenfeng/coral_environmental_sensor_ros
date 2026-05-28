@@ -1,0 +1,6 @@
+float32 pm2_5_standard
+float32 pm2_5_atmosphere
+float32 pm1_0_standard
+float32 pm1_0_atmosphere
+float32 pm10_standard
+float32 pm10_atmosphere

@@ -1,0 +1,5 @@
+sensor_msgs/Temperature temperature
+sensor_msgs/FluidPressure air_pressure
+sensor_msgs/RelativeHumidity humidity
+sensor_msgs/Illuminance ambient_light
+AirQualityMsg air_quality
