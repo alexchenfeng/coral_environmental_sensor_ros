@@ -1,0 +1,88 @@
+/*
+ * coral-enviro-board.dts
+ * Device Tree Overlay to support Coral Environmental Sensor Board
+ *
+ * Copyright (C) 2019 Google LLC
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ */
+
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "fsl,imx8mq-phanbell", "fsl,imx8mq";
+
+	fragment@0 {
+		target-path = "/i2c@30a30000";
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "okay";
+
+			opt3002@44 {
+				compatible = "ti,opt3001";
+				reg = <0x45>; /* address */
+			};
+
+			hdc2010@40 {
+				compatible = "hdc20x0";
+				reg = <0x40>; /* address */
+			};
+
+			bmp280@76 {
+				compatible = "bmp280";
+				reg = <0x76>; /* address */
+			};
+
+			tla2021@49 {
+				compatible = "ti,tla202x";
+				pinctrl-names = "default";
+				pinctrl-0 = <&pinctrl_enviro>;
+				reg = <0x49>; /* address */
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				channel@0 {
+					reg = <0>;
+					ti,gain = <0>; /* +/- 6.144 V range */
+				};
+			};
+		};
+	};
+
+	fragment@1 {
+		target-path = "/iomuxc@30330000";
+		__overlay__ {
+			status = "okay";
+			imx8mq-phanbell {
+				pinctrl_gpio: gpio_ctrlgrp{
+					fsl,pins = <>;
+				};
+				pinctrl_enviro: envirogrp {
+					fsl,pins = <
+						0x118 0x380 0x000 0x5 0x0 0xd8 /* MX8MQ_IOMUXC_NAND_DATA03_GPIO3_IO9 */
+						0x18C 0x3F4 0x000 0x5 0x0 0xd8 /* MX8MQ_IOMUXC_SAI1_TXD0_GPIO4_IO12  */
+					>;
+				};
+			};
+		};
+	};
+
+	fragment@2 {
+		target-path = "/sai@30010000";
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+};
+

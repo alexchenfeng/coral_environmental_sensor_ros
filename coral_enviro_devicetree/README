@@ -1,0 +1,24 @@
+This device tree overlay is provided to enable the functionality of the Coral
+Environmental Sensor Board.
+
+For Raspberry Pi platforms:
+
+The included EEPROM is already flashed with this overlay. No additional steps are needed.
+If customization of the blob is desired, dtc is used to compile the overlay:
+dtc -@ -I dts -O dtb -o coral-enviro-board.dtbo coral-enviro-board.dts
+
+It is also possible to overwrite the EEPROM. In order to do this:
+1) Short JP1 (a solder bridge) to unlock the EEPROM.
+2) Enable I2C0 access (add dtparam=i2c0=on to config.txt in the boot partiton).
+3) Rebuild and flash following instructions at https://github.com/raspberrypi/hats/tree/master/eepromutils
+
+
+For Coral platforms:
+
+The overlay can be put in the boot folder in order to automatically load on boot.
+Once added to /boot, modify overlays.txt to add coral-enviro-board
+(e.g overlays=coral-enviro-board).
+
+If customization of the blob is desired, dtc is used to compile the overlay:
+dtc -@ -I dts -O dtb -o coral-enviro-board.dtbo coral-enviro-board.dts
+
