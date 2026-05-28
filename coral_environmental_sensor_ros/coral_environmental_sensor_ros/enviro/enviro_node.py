@@ -8,6 +8,7 @@ from coral_environmental_sensor_ros.air_quality.dfrobot_airqualitysensor import 
 
 from luma.core.render import canvas
 import itertools
+import time
 
 class EnviroNode(Node):
 
@@ -23,10 +24,14 @@ class EnviroNode(Node):
         self.get_logger().info('EnviroNode initialized')
 
     def timer_callback(self):
-        msg = CoralEnviroMsg()
-        msg.air_quality.pm2_5_standard = self._get_pm2_5_std()
-        self._sensor_pub.publish(msg)
-        self.get_logger().info('Publishing PM2.5: %.2f ug/m3' % self._none_to_nan(msg.air_quality.pm2_5_standard))
+        try:
+            msg = CoralEnviroMsg()
+            msg.air_quality.pm2_5_standard = self._get_pm2_5_std()
+            self._sensor_pub.publish(msg)
+            self.get_logger().info('Publishing PM2.5: %.2f ug/m3' % self._none_to_nan(msg.air_quality.pm2_5_standard))
+        except Exception as e:
+            self.get_logger().error('Error reading sensors: %s' % str(e))
+            time.sleep(5)  # Wait before retrying to avoid spamming logs
 
     def _get_pm2_5_std(self):
         concentration = self.airqualitysensor.gain_particle_concentration_ugm3(self.airqualitysensor.PARTICLE_PM2_5_STANDARD)
@@ -39,8 +44,8 @@ class EnviroNode(Node):
 def main(args=None):
     try:
         with rclpy.init(args=args):
-            minimal_publisher = EnviroNode()
-            rclpy.spin(minimal_publisher)
+            node = EnviroNode()
+            rclpy.spin(node)
     except (KeyboardInterrupt, ExternalShutdownException):
         pass
 
