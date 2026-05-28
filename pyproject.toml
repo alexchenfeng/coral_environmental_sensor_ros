@@ -5,6 +5,8 @@ description = "pyenv for coral environmental sensor ros runtime"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "luma-oled>=3.15.0",
+    "rpi-gpio>=0.7.1",
     "smbus>=1.1.post2",
     "spidev>=3.8",
 ]
