@@ -13,6 +13,8 @@
 # limitations under the License.
 
 from coral_environmental_sensor_ros.enviro.board import EnviroBoard
+from coral_environmental_sensor_ros.air_quality.dfrobot_airqualitysensor import DFRobot_AirQualitySensor
+
 from luma.core.render import canvas
 from PIL import ImageDraw
 from time import sleep
@@ -27,6 +29,17 @@ def update_display(display, msg):
 
 def _none_to_nan(val):
     return float('nan') if val is None else val
+
+
+def air_quality_pm2_5():
+
+    I2C_1       = 0x01             
+    I2C_ADDRESS = 0x19
+    with DFRobot_AirQualitySensor(I2C_1 ,I2C_ADDRESS) as airqualitysensor:
+        concentration = airqualitysensor.gain_particle_concentration_ugm3(airqualitysensor.PARTICLE_PM2_5_STANDARD)
+        return concentration
+
+
 
 
 def main():
@@ -53,11 +66,18 @@ def main():
         msg += 'RH: %.2f %%' % _none_to_nan(sensors['humidity'])
         update_display(enviro.display, msg)
         sleep(args.display_duration)
+
         # After 5 seconds, switch to light and pressure.
         sensors['ambient_light'] = enviro.ambient_light
         sensors['pressure'] = enviro.pressure
         msg = 'Light: %.2f lux\n' % _none_to_nan(sensors['ambient_light'])
         msg += 'Pressure: %.2f kPa' % _none_to_nan(sensors['pressure'])
+        update_display(enviro.display, msg)
+        sleep(args.display_duration)
+
+        # After 10 seconds, switch to PM2.5.
+        sensors['pm2_5'] = air_quality_pm2_5()
+        msg = 'PM2.5: %.2f ug/m3' % _none_to_nan(sensors['pm2_5'])
         update_display(enviro.display, msg)
         sleep(args.display_duration)
 
