@@ -35,9 +35,9 @@ def air_quality_pm2_5():
 
     I2C_1       = 0x01             
     I2C_ADDRESS = 0x19
-    with DFRobot_AirQualitySensor(I2C_1 ,I2C_ADDRESS) as airqualitysensor:
-        concentration = airqualitysensor.gain_particle_concentration_ugm3(airqualitysensor.PARTICLE_PM2_5_STANDARD)
-        return concentration
+    airqualitysensor = DFRobot_AirQualitySensor(I2C_1 ,I2C_ADDRESS)
+    concentration = airqualitysensor.gain_particle_concentration_ugm3(airqualitysensor.PARTICLE_PM2_5_STANDARD)
+    return concentration
 
 
 
