@@ -77,6 +77,7 @@ class EnviroNode(Node):
 
     def _oled_display_loop(self):
         while not self._stop_display_event.is_set():
+            # display PM2.5 standard concentration and humidity first
             with self._data_lock:
                 msg = f"PM2.5 std: {self._curr_pm2_5_standard:.2f} ug/m3\n"
                 msg += f"Humidity: {self._curr_humidity:.2f} %\n"
@@ -84,6 +85,7 @@ class EnviroNode(Node):
             self._oled_update_display(msg)
             self.get_logger().debug(f"Updated OLED display, msg: {msg}")
             time.sleep(5)
+            ## display AQI and category if PM2.5 standard concentration is available
             if aqi is not None:
                 # https://en.wikipedia.org/wiki/Air_quality_index
                 if aqi >= 0 and aqi <= 50:
@@ -105,6 +107,11 @@ class EnviroNode(Node):
                 self._oled_update_display(aqi_msg)
                 self.get_logger().debug(f"Updated OLED display with AQI, msg: {aqi_msg}")
                 time.sleep(5)
+
+            ## display board id
+            board_id_msg = f"Board ID: {self._curr_node_name}\n"
+            self._oled_update_display(board_id_msg)
+            time.sleep(3)
 
     def _oled_update_display(self, msg: str):
         with canvas(self.enviro.display) as draw:
