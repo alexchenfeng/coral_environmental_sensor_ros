@@ -9,7 +9,6 @@ from coral_environmental_sensor_ros.enviro.board import EnviroBoard
 from coral_environmental_sensor_ros.air_quality.dfrobot_airqualitysensor import DFRobot_AirQualitySensor
 
 from luma.core.render import canvas
-import itertools
 import time
 import threading
 

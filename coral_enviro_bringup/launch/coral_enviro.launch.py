@@ -19,17 +19,28 @@ def generate_launch_description():
         'sensor_board_name',
         default_value='coral_enviro_board_1',
         description='The name of the sensor board.'
-    )   
+    )
+
+    enable_oled_display = LaunchConfiguration('enable_oled_display', default='true')
+    enable_oled_display_arg = DeclareLaunchArgument(
+        'enable_oled_display',
+        default_value='true',
+        description='Whether to enable the OLED display on the Enviro board.'
+    )
 
     enviro_node = Node(
         package='coral_environmental_sensor_ros',
         executable='enviro_node',
         name=sensor_board_name,
         namespace=namespace,
+        parameters=[{
+            'enable_oled_display': enable_oled_display
+        }]
     )
 
     ld.add_action(enviro_node)
     ld.add_action(namespace_arg)
     ld.add_action(sensor_board_name_arg)
+    ld.add_action(enable_oled_display_arg)
 
     return ld
