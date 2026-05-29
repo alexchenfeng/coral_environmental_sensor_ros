@@ -46,7 +46,7 @@ class EnviroNode(Node):
         self._air_quality_sensor_i2c_address = 0x19
         _data_topic_name = f"{self._curr_node_name}/data"
         self._sensor_pub = self.create_publisher(CoralEnviroMsg, _data_topic_name, 10)
-        timer_period = 2.0
+        timer_period = 2.0 # 0.5hz
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.enviro = EnviroBoard()
         self.airqualitysensor = DFRobot_AirQualitySensor(self._air_quality_sensor_i2c_1, self._air_quality_sensor_i2c_address)
@@ -109,7 +109,7 @@ class EnviroNode(Node):
                 time.sleep(5)
 
             ## display board id
-            board_id_msg = f"Board ID: {self._curr_node_name}\n"
+            board_id_msg = f"{self._curr_node_name}\n"
             self._oled_update_display(board_id_msg)
             time.sleep(3)
 
