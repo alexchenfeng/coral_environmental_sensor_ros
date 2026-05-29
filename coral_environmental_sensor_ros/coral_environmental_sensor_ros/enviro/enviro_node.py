@@ -66,6 +66,7 @@ class EnviroNode(Node):
                 self._oled_display_thread.join()
                 self._oled_display_thread = None
                 self.enviro.display.clear()
+                self._stop_display_event.clear()
                 self.get_logger().info("OLED display disabled")
             else:
                 self.get_logger().info("OLED display already disabled")
@@ -76,9 +77,31 @@ class EnviroNode(Node):
             with self._data_lock:
                 msg = f"PM2.5 std: {self._curr_pm2_5_standard:.2f} ug/m3\n"
                 msg += f"Humidity: {self._curr_humidity:.2f} %\n"
+                aqi = self.calculate_pm2_5_aqi(self._curr_pm2_5_standard)
             self._oled_update_display(msg)
             self.get_logger().debug(f"Updated OLED display, msg: {msg}")
             time.sleep(5)
+            if aqi is not None:
+                # https://en.wikipedia.org/wiki/Air_quality_index
+                if aqi >= 0 and aqi <= 50:
+                    aqi_category = "Good"
+                elif aqi >= 51 and aqi <= 100:
+                    aqi_category = "Moderate"
+                elif aqi >= 101 and aqi <= 150:
+                    aqi_category = "Unhealthy warning"
+                elif aqi >= 151 and aqi <= 200:
+                    aqi_category = "Unhealthy"
+                elif aqi >= 201 and aqi <= 300:
+                    aqi_category = "Very unhealthy"
+                elif aqi >= 301 and aqi <= 500:
+                    aqi_category = "Hazardous"
+                else:
+                    aqi_category = "Unknown"
+                aqi_msg = f"AQI: {aqi}\n"
+                aqi_msg += f"{aqi_category}\n"
+                self._oled_update_display(aqi_msg)
+                self.get_logger().debug(f"Updated OLED display with AQI, msg: {aqi_msg}")
+                time.sleep(5)
 
     def _oled_update_display(self, msg: str):
         with canvas(self.enviro.display) as draw:
@@ -160,6 +183,25 @@ class EnviroNode(Node):
     def _none_to_nan(self, val):
         return float('nan') if val is None else val
 
+
+    def calculate_pm2_5_aqi(self, concentration):
+
+        # Breakpoints for PM2.5 (US EPA Standard)
+        breakpoints = [
+            (0.0, 12.0, 0, 50),
+            (12.1, 35.4, 51, 100),
+            (35.5, 55.4, 101, 150),
+            (55.5, 150.4, 151, 200),
+            (150.5, 250.4, 201, 300),
+            (250.5, 500.4, 301, 500)
+        ]
+        
+        for c_low, c_high, i_low, i_high in breakpoints:
+            if c_low <= concentration <= c_high:
+                # Linear interpolation formula
+                aqi = ((i_high - i_low) / (c_high - c_low)) * (concentration - c_low) + i_low
+                return round(aqi)
+        return None
 
 def main(args=None):
     try:
