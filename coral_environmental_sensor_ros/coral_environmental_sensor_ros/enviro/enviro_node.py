@@ -16,7 +16,8 @@ class EnviroNode(Node):
 
     def __init__(self):
         super().__init__('enviro_node')
-        self.declare_parameter('enable_oled_display', True)
+        self.declare_parameter('enable_oled_display', False)
+        self._enable_oled_display_param = self.get_parameter('enable_oled_display').get_parameter_value().bool_value
         self._param_handler = ParameterEventHandler(self)
         self._curr_node_name = self.get_name()
         self._curr_namespace = self.get_namespace()
@@ -49,6 +50,14 @@ class EnviroNode(Node):
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.enviro = EnviroBoard()
         self.airqualitysensor = DFRobot_AirQualitySensor(self._air_quality_sensor_i2c_1, self._air_quality_sensor_i2c_address)
+
+        if self._enable_oled_display_param:
+            self._oled_display_thread = threading.Thread(target=self._oled_display_loop, daemon=True)
+            self._oled_display_thread.start()
+            self.get_logger().info("OLED display enabled on startup")
+        else:
+            self.get_logger().info("OLED display disabled on startup")
+            
         self.get_logger().info(f'EnviroNode initialized in namespace: {self._curr_namespace}, nodename: {self._curr_node_name}, publishing to topic: {_data_topic_name}')
 
     def _enable_oled_display_callback(self, param: rclpy.parameter.Parameter):
