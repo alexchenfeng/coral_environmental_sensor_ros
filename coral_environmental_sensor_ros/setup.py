@@ -25,6 +25,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'enviro_node = coral_environmental_sensor_ros.enviro.enviro_node:main',
         ],
     },
 )
