@@ -27,6 +27,8 @@ class EnviroNode(Node):
         )
 
         self._data_lock = threading.Lock()
+        self._stop_display_event = threading.Event()
+        self._oled_display_thread = None
         self._curr_pm2_5_standard = 0.0
         self._curr_pm2_5_atmosphere = 0.0
         self._curr_pm1_0_standard = 0.0
@@ -49,6 +51,38 @@ class EnviroNode(Node):
 
     def _enable_oled_display_callback(self, param: rclpy.parameter.Parameter):
         self.get_logger().info(f"Received an update to parameter: {param.name}: {rclpy.parameter.parameter_value_to_python(param.value)}")
+        p_val = rclpy.parameter.parameter_value_to_python(param.value)
+
+        if p_val:
+            if self._oled_display_thread is not None:
+                self.get_logger().info("OLED display already enabled")
+            else:
+                self._oled_display_thread = threading.Thread(target=self._oled_display_loop, daemon=True)
+                self._oled_display_thread.start()
+                self.get_logger().info("OLED display enabled")
+        else:
+            if self._oled_display_thread is not None:
+                self._stop_display_event.set()
+                self._oled_display_thread.join()
+                self._oled_display_thread = None
+                self.get_logger().info("OLED display disabled")
+            else:
+                self.get_logger().info("OLED display already disabled")
+
+
+    def _oled_display_loop(self):
+        while not self._stop_display_event.is_set():
+            with self._data_lock:
+                msg = f"PM2.5 std: {self._curr_pm2_5_standard:.2f} ug/m3\n"
+                msg += f"Humidity: {self._curr_humidity:.2f} %\n"
+            self._oled_update_display(msg)
+            self.get_logger().debug(f"Updated OLED display, msg: {msg}")
+            time.sleep(5)
+
+    def _oled_update_display(self, msg: str):
+        with canvas(self.enviro.display) as draw:
+            draw.text((0, 0), msg, fill='white')
+
 
     def timer_callback(self):
         try:
