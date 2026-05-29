@@ -19,10 +19,12 @@ class EnviroNode(Node):
         super().__init__('enviro_node')
         self.declare_parameter('enable_oled_display', True)
         self._param_handler = ParameterEventHandler(self)
+        self._curr_node_name = self.get_name()
+        self._curr_namespace = self.get_namespace()
 
         self._param_callback_handle = self._param_handler.add_parameter_callback(
             parameter_name='enable_oled_display',
-            node_name="enviro_node",
+            node_name=self._curr_node_name,
             callback=self._enable_oled_display_callback
         )
 
@@ -42,12 +44,13 @@ class EnviroNode(Node):
         
         self._air_quality_sensor_i2c_1 = 0x01
         self._air_quality_sensor_i2c_address = 0x19
-        self._sensor_pub = self.create_publisher(CoralEnviroMsg, 'coral_enviro_data', 10)
+        _data_topic_name = f"{self._curr_node_name}/data"
+        self._sensor_pub = self.create_publisher(CoralEnviroMsg, _data_topic_name, 10)
         timer_period = 2.0
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.enviro = EnviroBoard()
         self.airqualitysensor = DFRobot_AirQualitySensor(self._air_quality_sensor_i2c_1, self._air_quality_sensor_i2c_address)
-        self.get_logger().info('EnviroNode initialized')
+        self.get_logger().info(f'EnviroNode initialized in namespace: {self._curr_namespace}, nodename: {self._curr_node_name}, publishing to topic: {_data_topic_name}')
 
     def _enable_oled_display_callback(self, param: rclpy.parameter.Parameter):
         self.get_logger().info(f"Received an update to parameter: {param.name}: {rclpy.parameter.parameter_value_to_python(param.value)}")
