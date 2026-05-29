@@ -65,6 +65,7 @@ class EnviroNode(Node):
                 self._stop_display_event.set()
                 self._oled_display_thread.join()
                 self._oled_display_thread = None
+                self._oled_update_display("")
                 self.get_logger().info("OLED display disabled")
             else:
                 self.get_logger().info("OLED display already disabled")
