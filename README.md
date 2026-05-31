@@ -68,6 +68,14 @@ This package provides a ROS 2 driver for the Coral Environmental Sensor board, a
 
 ### 3. Download ros2 binary packages (armhf)
 
+[ros2-lyrical-armhf-binary](https://github.com/alexchenfeng/coral_environmental_sensor_ros/releases/download/0.0.1/lyrical.tar.gz)
+
+```bash
+# download and extract the binary packages
+wget https://github.com/alexchenfeng/coral_environmental_sensor_ros/releases/download/0.0.1/lyrical.tar.gz
+tar -xzf lyrical.tar.gz && mv lyrical /opt/ros
+```
+
 ### 4. ROS2 workspave setup
 
 1. Clone this repository into your ros2 workspace and build it using colcon:
