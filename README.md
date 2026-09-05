@@ -59,8 +59,12 @@ This package provides a ROS 2 driver for the Coral Environmental Sensor board, a
     # from step 1, if the kernel modules are not found, build and install them.
     # In my case, the kernel version is 6.12.75+rpt-rpi-v6, and the ti-ads1015 and bmp280 modules can be found, but the hdc20x0 and opt3001 modules are not found, so I need to build and install them.
 
-    cd humidity && make && cp -v hdc20x0.ko /lib/modules/$(uname -r)/coral-enviro
-    cd light && make && cp -v opt3001.ko /lib/modules/$(uname -r)/coral-enviro
+    cd humidity && make && sudo cp -v hdc20x0.ko /lib/modules/$(uname -r)/coral-enviro
+    cd light && make && sudo cp -v opt3001.ko /lib/modules/$(uname -r)/coral-enviro
+    sudo depmod -a
+
+    # use sudo raspi-config command line to enable I2C
+    sudo raspi-config
     ```
 
 ### 2. Install dependencies for ros2 lyrical
@@ -93,7 +97,6 @@ tar -xzf lyrical.tar.gz && mv lyrical /opt/ros
     curl -LsSf https://astral.sh/uv/install.sh | sh
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
-    uv venv --python 3.13 --system-site-packages
     cd ~/coral_ws/src/coral_environmental_sensor_ros
     uv venv --python 3.13 --system-site-packages
     uv sync
