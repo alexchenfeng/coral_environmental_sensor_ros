@@ -28,6 +28,7 @@ endif()
 rosidl_generate_interfaces(${PROJECT_NAME}
 	"msg/CoralEnviroMsg.msg"
 	"msg/AirQualityMsg.msg"
+	"msg/HCHOMsg.msg"
 	DEPENDENCIES sensor_msgs
 )
 
