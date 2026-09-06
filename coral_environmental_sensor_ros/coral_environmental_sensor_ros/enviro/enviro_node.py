@@ -207,19 +207,22 @@ class EnviroNode(Node):
 
                 # Get HCHO data if the SFA40 sensor is enabled
                 if self._enabled_sfa40_sensor:
-                    sfa40_temperature, sfa40_humidity, sfa40_hcho = self._get_hcho_data()
+                    sfa40_temperature, sfa40_humidity, sfa40_hcho, sfa40_ready = self._get_hcho_data()
                     if sfa40_hcho is not None:
                         msg.hcho_data.header.stamp = time_stamp_msg
                         msg.hcho_data.concentration = sfa40_hcho
                         msg.hcho_data.units = "ppb"
                         msg.hcho_data.temperature = sfa40_temperature
                         msg.hcho_data.humidity = sfa40_humidity
+                        msg.hcho_data.sensor_ready = sfa40_ready
                         self.current_sfa40_temperature = sfa40_temperature
                         self.current_sfa40_humidity = sfa40_humidity
                         self.current_sfa40_hcho = sfa40_hcho
 
                 self._sensor_pub.publish(msg)
-                self.get_logger().info('Publishing PM2.5: %.2f ug/m3' % self._none_to_nan(msg.air_quality.pm2_5_standard))
+
+                if self._enabled_air_quality_sensor:
+                    self.get_logger().info('Publishing PM2.5: %.2f ug/m3' % self._none_to_nan(msg.air_quality.pm2_5_standard))
 
                 if self._enabled_sfa40_sensor:
                     self.get_logger().info('Publishing HCHO: %.2f ppb' % self._none_to_nan(msg.hcho_data.concentration))
@@ -294,11 +297,11 @@ class EnviroNode(Node):
                 hcho = float(self._sfa40_dev.HCHO)
                 self.get_logger().info(f"DFrobot SFA40 sensor Temperature: {temperature}°C, Humidity: {humidity}%, HCHO: {hcho} ppb")
 
-                return temperature, humidity, hcho
+                return temperature, humidity, hcho, self._sfa40_dev_ready
             else:
                 self.get_logger().error("Failed to read data from DFrobot SFA40 sensor.")
-                return None, None, None
-            
+                return None, None, None, False
+
 def main(args=None):
     try:
         with rclpy.init(args=args):
