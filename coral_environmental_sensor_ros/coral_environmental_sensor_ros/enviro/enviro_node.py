@@ -7,6 +7,7 @@ from coral_environmental_msgs.msg import CoralEnviroMsg
 
 from coral_environmental_sensor_ros.enviro.board import EnviroBoard
 from coral_environmental_sensor_ros.air_quality.dfrobot_airqualitysensor import DFRobot_AirQualitySensor
+from coral_environmental_sensor_ros.hcho_sensor.dfrobot_sfa40 import DFRobot_SFA40
 
 from luma.core.render import canvas
 import time
@@ -41,6 +42,26 @@ class EnviroNode(Node):
         self._curr_humidity = 0.0
         self._curr_pressure = 0.0
         self._curr_temperature = 0.0
+
+        self._sfa40_dev = DFRobot_SFA40(bus=1)
+        self.current_sfa40_temperature = 0.0
+        self.current_sfa40_humidity = 0.0
+        self.current_sfa40_hcho = 0.0
+        self._sfa40_dev_ready = False
+
+        if self._sfa40_dev.begin() != 0:
+            self.get_logger().error("Failed to initialize DFrobot SFA40 sensor")
+            self._enabled_sfa40_sensor = False
+        else:
+            self.get_logger().info("DFrobot SFA40 sensor initialized successfully")
+            self._enabled_sfa40_sensor = True
+
+        if self._enabled_sfa40_sensor:
+            sfa40_serial = self._sfa40_dev.get_serial_number()
+            sfa40_serial_hex = ' '.join('{:02X}'.format(b) for b in sfa40_serial)
+            self.get_logger().info(f"DFrobot SFA40 sensor serial number: {sfa40_serial_hex}")
+            self._sfa40_dev.start_measurement()
+            time.sleep(1)  # Wait for the sensor to stabilize
         
         self._air_quality_sensor_i2c_1 = 0x01
         self._air_quality_sensor_i2c_address = 0x19
@@ -50,6 +71,19 @@ class EnviroNode(Node):
         self.timer = self.create_timer(timer_period, self.timer_callback)
         self.enviro = EnviroBoard()
         self.airqualitysensor = DFRobot_AirQualitySensor(self._air_quality_sensor_i2c_1, self._air_quality_sensor_i2c_address)
+
+        try:
+            airquality_sensor_version = self.airqualitysensor.gain_version()
+            if airquality_sensor_version:
+                self._enabled_air_quality_sensor = True
+                self.get_logger().info(f"Air quality sensor version: {airquality_sensor_version}")
+            else:
+                self._enabled_air_quality_sensor = False
+                self.get_logger().error("Failed to fetch air quality sensor version")
+
+        except Exception as e:
+            self.get_logger().error(f"Error occurred while fetching air quality sensor version: {e}")
+            self._enabled_air_quality_sensor = False
 
         if self._enable_oled_display_param:
             self._oled_display_thread = threading.Thread(target=self._oled_display_loop, daemon=True)
@@ -132,25 +166,28 @@ class EnviroNode(Node):
                 time_stamp_msg = self.get_clock().now().to_msg()
                 msg = CoralEnviroMsg()
 
-                msg.air_quality.header.stamp = time_stamp_msg
+                # air quality data
 
-                msg.air_quality.pm2_5_standard = self._get_pm2_5_std()
-                self._curr_pm2_5_standard = msg.air_quality.pm2_5_standard
+                if self._enabled_air_quality_sensor:
+                    msg.air_quality.header.stamp = time_stamp_msg
 
-                msg.air_quality.pm2_5_atmosphere = self._get_pm2_5_atmosphere()
-                self._curr_pm2_5_atmosphere = msg.air_quality.pm2_5_atmosphere
+                    msg.air_quality.pm2_5_standard = self._get_pm2_5_std()
+                    self._curr_pm2_5_standard = msg.air_quality.pm2_5_standard
 
-                msg.air_quality.pm1_0_standard = self._get_pm1_0_std()
-                self._curr_pm1_0_standard = msg.air_quality.pm1_0_standard
+                    msg.air_quality.pm2_5_atmosphere = self._get_pm2_5_atmosphere()
+                    self._curr_pm2_5_atmosphere = msg.air_quality.pm2_5_atmosphere
 
-                msg.air_quality.pm1_0_atmosphere = self._get_pm1_0_atmosphere()
-                self._curr_pm1_0_atmosphere = msg.air_quality.pm1_0_atmosphere
+                    msg.air_quality.pm1_0_standard = self._get_pm1_0_std()
+                    self._curr_pm1_0_standard = msg.air_quality.pm1_0_standard
 
-                msg.air_quality.pm10_standard = self._get_pm10_0_std()
-                self._curr_pm10_standard = msg.air_quality.pm10_standard
+                    msg.air_quality.pm1_0_atmosphere = self._get_pm1_0_atmosphere()
+                    self._curr_pm1_0_atmosphere = msg.air_quality.pm1_0_atmosphere
 
-                msg.air_quality.pm10_atmosphere = self._get_pm10_0_atmosphere()
-                self._curr_pm10_atmosphere = msg.air_quality.pm10_atmosphere
+                    msg.air_quality.pm10_standard = self._get_pm10_0_std()
+                    self._curr_pm10_standard = msg.air_quality.pm10_standard
+
+                    msg.air_quality.pm10_atmosphere = self._get_pm10_0_atmosphere()
+                    self._curr_pm10_atmosphere = msg.air_quality.pm10_atmosphere
 
                 msg.ambient_light.header.stamp = time_stamp_msg
                 msg.ambient_light.illuminance = float(self.enviro.ambient_light)
@@ -168,8 +205,25 @@ class EnviroNode(Node):
                 msg.temperature.temperature = float(self.enviro.temperature)
                 self._curr_temperature = msg.temperature.temperature
 
+                # Get HCHO data if the SFA40 sensor is enabled
+                if self._enabled_sfa40_sensor:
+                    sfa40_temperature, sfa40_humidity, sfa40_hcho = self._get_hcho_data()
+                    if sfa40_hcho is not None:
+                        msg.hcho_data.header.stamp = time_stamp_msg
+                        msg.hcho_data.concentration = sfa40_hcho
+                        msg.hcho_data.units = "ppb"
+                        msg.hcho_data.temperature = sfa40_temperature
+                        msg.hcho_data.humidity = sfa40_humidity
+                        self.current_sfa40_temperature = sfa40_temperature
+                        self.current_sfa40_humidity = sfa40_humidity
+                        self.current_sfa40_hcho = sfa40_hcho
+
                 self._sensor_pub.publish(msg)
                 self.get_logger().info('Publishing PM2.5: %.2f ug/m3' % self._none_to_nan(msg.air_quality.pm2_5_standard))
+
+                if self._enabled_sfa40_sensor:
+                    self.get_logger().info('Publishing HCHO: %.2f ppb' % self._none_to_nan(msg.hcho_data.concentration))
+
         except Exception as e:
             self.get_logger().error('Error reading sensors: %s' % str(e))
             time.sleep(5)  # Wait before retrying to avoid spamming logs
@@ -221,6 +275,30 @@ class EnviroNode(Node):
                 return round(aqi)
         return None
 
+    def _get_hcho_data(self):
+        if self._enabled_sfa40_sensor:
+            sensor_status = self._sfa40_dev.read_measurement_data_raw()
+            if sensor_status == 0 and not self._sfa40_dev_ready:
+                self.get_logger().info("The DFrobot SFA40 sensor is ready and the data is reliable!")
+                self._sfa40_dev_ready = True
+            elif sensor_status == 1:
+                self.get_logger().warning("The DFrobot SFA40 sensor is not ready (<1 min, HCHO is 0 ppb)!")
+            elif sensor_status == 2:
+                self.get_logger().warning("The DFrobot SFA40 sensor is not up to specification (<10 min)!")
+            elif sensor_status == 3:
+                self.get_logger().error("The DFrobot SFA40 sensor read measurement data failed!")
+
+            if sensor_status != 3:
+                temperature = float(self._sfa40_dev.temperature_c)
+                humidity = float(self._sfa40_dev.humidity)
+                hcho = float(self._sfa40_dev.HCHO)
+                self.get_logger().info(f"DFrobot SFA40 sensor Temperature: {temperature}°C, Humidity: {humidity}%, HCHO: {hcho} ppb")
+
+                return temperature, humidity, hcho
+            else:
+                self.get_logger().error("Failed to read data from DFrobot SFA40 sensor.")
+                return None, None, None
+            
 def main(args=None):
     try:
         with rclpy.init(args=args):
